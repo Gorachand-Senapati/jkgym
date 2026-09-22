@@ -64,10 +64,11 @@ export const Reports: React.FC = () => {
   };
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(transactions);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-    XLSX.writeFile(wb, `Gym_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(transactions), "Transactions");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(members), "Members");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(users), "Employees");
+    XLSX.writeFile(wb, `JK_Gym_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const safeEmployeeCashBalances = employeeCashBalances || {};

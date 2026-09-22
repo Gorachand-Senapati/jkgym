@@ -10,12 +10,17 @@ export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('employee');
+  const [secretCode, setSecretCode] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLogin) {
       const user = users.find(u => u.username === username);
       if (user) {
+        if (user.role === 'owner' && secretCode !== 'jk7016') {
+          showAlert('Incorrect Owner Secret Code! Access Denied.', 'error');
+          return;
+        }
         login(user);
         showAlert(`Welcome back, ${user.name}!`, 'success');
       } else {
@@ -24,6 +29,10 @@ export const Login: React.FC = () => {
     } else {
       if (users.some(u => u.username === username)) {
         showAlert('Username already exists. Please choose another one.', 'error');
+        return;
+      }
+      if (role === 'owner' && secretCode !== 'jk7016') {
+        showAlert('Incorrect Owner Secret Code! Cannot create Owner account.', 'error');
         return;
       }
       const newUser: User = {
@@ -127,6 +136,13 @@ export const Login: React.FC = () => {
               <input type="text" className="input-field" required value={username} onChange={e => setUsername(e.target.value)} placeholder="johndoe" />
             </div>
 
+            {isLogin && (
+              <div className="input-group mb-5">
+                <label style={{ color: 'var(--text-secondary)' }}>Owner Secret Code <span className="text-sm">(Required for Owners)</span></label>
+                <input type="password" className="input-field" value={secretCode} onChange={e => setSecretCode(e.target.value)} placeholder="Leave blank if Employee" />
+              </div>
+            )}
+
             {!isLogin && (
               <div className="input-group mb-6">
                 <label style={{ color: 'var(--text-secondary)' }}>Role</label>
@@ -140,6 +156,13 @@ export const Login: React.FC = () => {
                     <span className="font-medium">Owner</span>
                   </label>
                 </div>
+              </div>
+            )}
+
+            {!isLogin && role === 'owner' && (
+              <div className="input-group mb-5">
+                <label style={{ color: 'var(--text-secondary)' }}>Owner Secret Code</label>
+                <input type="password" className="input-field" required value={secretCode} onChange={e => setSecretCode(e.target.value)} placeholder="Enter Master PIN" />
               </div>
             )}
 

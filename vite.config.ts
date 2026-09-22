@@ -9,7 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'darklogo.jpeg', 'whitelogo.jpeg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'android-chrome-192x192.png', 'android-chrome-512x512.png'],
       manifest: {
         name: 'JK Multi Gym & Pain Rehab Centre',
         short_name: 'JK Gym',
@@ -19,14 +19,16 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'darklogo.jpeg',
+            src: 'android-chrome-192x192.png',
             sizes: '192x192',
-            type: 'image/jpeg'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
-            src: 'darklogo.jpeg',
+            src: 'android-chrome-512x512.png',
             sizes: '512x512',
-            type: 'image/jpeg'
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

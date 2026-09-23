@@ -5,7 +5,7 @@ import { useAlert } from '../context/AlertContext';
 export const Login: React.FC = () => {
   const { login, registerUser, users } = useAuth();
   const { showAlert } = useAlert();
-  
+
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
@@ -79,7 +79,7 @@ export const Login: React.FC = () => {
           <img src="/whitelogo.jpeg" alt="JK Multi Gym" style={{ width: '150px', height: '150px', objectFit: 'contain', margin: '0 auto 1.5rem auto' }} />
           <h1 className="text-4xl mb-2 text-white font-extrabold tracking-wider" style={{ fontFamily: '"Montserrat", sans-serif' }}>JK MULTI GYM</h1>
           <h2 className="text-xl text-accent mb-6 font-bold tracking-widest uppercase">& Pain Rehab Centre</h2>
-          
+
           <div style={{ marginTop: '2rem', textAlign: 'left', display: 'inline-block' }}>
             <div className="flex items-center gap-3 mb-3">
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -87,10 +87,10 @@ export const Login: React.FC = () => {
               </div>
               <div>
                 <p className="font-bold text-white text-lg">Branch: Belghoria</p>
-                <p className="text-gray-300 text-sm">Feeder Road, Belghoria, Kolkata</p>
+                <p className="text-gray-300 text-sm">Sreepally Milon Samity Club Belghoria D.P Nagar Kolkata -56</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="text-white text-xl">📞</span>
@@ -130,7 +130,7 @@ export const Login: React.FC = () => {
                 <input type="text" className="input-field" required value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" />
               </div>
             )}
-            
+
             <div className="input-group mb-5">
               <label style={{ color: 'var(--text-secondary)' }}>Username</label>
               <input type="text" className="input-field" required value={username} onChange={e => setUsername(e.target.value)} placeholder="johndoe" />
@@ -174,9 +174,9 @@ export const Login: React.FC = () => {
           <div className="mt-8 border-t border-gray-700 pt-6 text-center">
             <p className="text-muted">
               {isLogin ? "Don't have an account?" : "Already have an account?"}
-              <button 
+              <button
                 type="button"
-                className="text-accent ml-2 hover:underline font-bold" 
+                className="text-accent ml-2 hover:underline font-bold"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '1rem' }}
                 onClick={() => setIsLogin(!isLogin)}
               >

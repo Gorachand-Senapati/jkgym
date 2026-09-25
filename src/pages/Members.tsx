@@ -34,6 +34,13 @@ export const Members: React.FC = () => {
     m.phone.includes(searchTerm)
   );
 
+  const todayDate = new Date();
+  const todayStr = todayDate.toISOString().split('T')[0];
+  const currentMonthDay = todayStr.substring(5); // MM-DD
+
+  const isBirthday = (dob?: string) => dob && dob.substring(5) === currentMonthDay;
+  const isDue = (expiryDate?: string) => expiryDate && expiryDate < todayStr;
+
   const handleEditClick = (member: Member) => {
     setEditingMember(member);
     setFormData(member);
@@ -166,6 +173,30 @@ export const Members: React.FC = () => {
                     <button className="btn btn-secondary flex items-center gap-1" style={{ padding: '0.4rem 0.8rem' }} onClick={() => handleEditClick(member)}>
                       <Edit2 size={16} /> Edit
                     </button>
+                    {isDue(member.expiryDate) && (
+                      <button 
+                        className="btn btn-danger flex items-center gap-1" 
+                        style={{ padding: '0.4rem 0.8rem', backgroundColor: '#ef4444', color: 'white', border: 'none' }} 
+                        onClick={() => {
+                          const msg = `Hi ${member.name}, your gym membership expired on ${member.expiryDate}. Please renew your membership.`;
+                          window.open(`https://wa.me/91${member.whatsapp || member.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                      >
+                        Due
+                      </button>
+                    )}
+                    {isBirthday(member.dob) && (
+                      <button 
+                        className="btn btn-success flex items-center gap-1" 
+                        style={{ padding: '0.4rem 0.8rem', backgroundColor: '#eab308', color: 'white', border: 'none' }} 
+                        onClick={() => {
+                          const msg = `Happy Birthday ${member.name}! Wishing you a great day from JK Multi Gym! 🎂🎉`;
+                          window.open(`https://wa.me/91${member.whatsapp || member.phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                      >
+                        Birthday
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -305,6 +336,7 @@ export const Members: React.FC = () => {
                     <p className="m-0"><strong>Name:</strong> {viewingMember.name}</p>
                     <p className="m-0"><strong>Phone:</strong> {viewingMember.phone}</p>
                     <p className="m-0"><strong>DOB:</strong> {viewingMember.dob}</p>
+                    <p className="m-0"><strong>Expiry Date:</strong> {viewingMember.expiryDate ? <span className={isDue(viewingMember.expiryDate) ? 'text-danger' : 'text-success'}>{viewingMember.expiryDate}</span> : 'N/A'}</p>
                     <p className="m-0"><strong>Blood Group:</strong> {viewingMember.bloodGroup || 'N/A'}</p>
                     <p className="m-0">
                       <strong>Status:</strong> 

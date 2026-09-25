@@ -19,6 +19,7 @@ export interface Member {
   status: 'active' | 'inactive';
   photoId?: string;
   aadharId?: string;
+  expiryDate?: string;
 }
 
 export interface Employee {
@@ -82,6 +83,7 @@ interface GymContextType extends GymState {
   updateMember: (member: Member) => void;
   addEmployee: (emp: Employee) => void;
   updateEmployee: (emp: Employee) => void;
+  deleteEmployee: (id: string) => void;
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   sellProduct: (productId: string, qty: number, paymentMethod: 'cash' | 'online', userId?: string) => void;
@@ -191,6 +193,7 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   
   const addEmployee = (emp: Employee) => setState(p => ({ ...p, employees: [...p.employees, emp] }));
   const updateEmployee = (emp: Employee) => setState(p => ({ ...p, employees: p.employees.map(e => e.id === emp.id ? emp : e) }));
+  const deleteEmployee = (id: string) => setState(p => ({ ...p, employees: p.employees.filter(e => e.id !== id) }));
   
   const addProduct = (product: Product) => setState(p => ({ ...p, inventory: [...p.inventory, product] }));
   const updateProduct = (product: Product) => setState(p => ({ ...p, inventory: p.inventory.map(pr => pr.id === product.id ? product : pr) }));
@@ -237,7 +240,7 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <GymContext.Provider value={{
       ...state,
-      addMember, updateMember, addEmployee, updateEmployee,
+      addMember, updateMember, addEmployee, updateEmployee, deleteEmployee,
       addProduct, updateProduct, sellProduct, addTherapySession,
       addTransaction, updateBalances
     }}>

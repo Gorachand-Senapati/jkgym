@@ -7,12 +7,21 @@ import { IndianRupee, Send, Download } from 'lucide-react';
 import { generateBillingPDF } from '../utils/pdfGenerator';
 
 export const Billing: React.FC = () => {
-  const { members, addTransaction } = useGym();
+  const { members, addTransaction, updateMember } = useGym();
   const { showAlert } = useAlert();
   const { currentUser } = useAuth();
   const [memberId, setMemberId] = useState('');
   const [amount, setAmount] = useState('');
   const [offer, setOffer] = useState('Monthly Fees Payment');
+  
+  // Date tracking for membership periods
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
+
   const [paymentMethod, setPaymentMethod] = useState<'cash'|'online'>('cash');
   const [lastPayment, setLastPayment] = useState<{ member: any, amount: number, offer: string, date: string, paymentMethod: string } | null>(null);
 
@@ -37,6 +46,10 @@ export const Billing: React.FC = () => {
     };
 
     addTransaction(tx);
+
+    if (endDate) {
+      updateMember({ ...member, expiryDate: endDate });
+    }
     
     // Save last payment details for the success modal
     setLastPayment({
@@ -49,6 +62,44 @@ export const Billing: React.FC = () => {
 
     setMemberId('');
     setAmount('');
+    
+    // Reset dates to default
+    const d = new Date();
+    setStartDate(d.toISOString().split('T')[0]);
+    d.setDate(d.getDate() + 30);
+    setEndDate(d.toISOString().split('T')[0]);
+  };
+
+  const handleOfferChange = (selectedOffer: string) => {
+    setOffer(selectedOffer);
+    
+    let daysToAdd = 0;
+    if (selectedOffer.includes('Monthly')) daysToAdd = 30;
+    else if (selectedOffer.includes('Quarterly')) daysToAdd = 90;
+    else if (selectedOffer.includes('Half Year')) daysToAdd = 180;
+    else if (selectedOffer.includes('Yearly')) daysToAdd = 365;
+
+    if (daysToAdd > 0) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + daysToAdd);
+      setEndDate(d.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleStartDateChange = (newStartDate: string) => {
+    setStartDate(newStartDate);
+    
+    let daysToAdd = 0;
+    if (offer.includes('Monthly')) daysToAdd = 30;
+    else if (offer.includes('Quarterly')) daysToAdd = 90;
+    else if (offer.includes('Half Year')) daysToAdd = 180;
+    else if (offer.includes('Yearly')) daysToAdd = 365;
+
+    if (daysToAdd > 0) {
+      const d = new Date(newStartDate);
+      d.setDate(d.getDate() + daysToAdd);
+      setEndDate(d.toISOString().split('T')[0]);
+    }
   };
   return (
     <div className="animate-fade-in">
@@ -73,7 +124,7 @@ export const Billing: React.FC = () => {
 
             <div className="input-group">
               <label>Payment Type / Offer</label>
-              <select className="input-field" value={offer} onChange={e => setOffer(e.target.value)}>
+              <select className="input-field" value={offer} onChange={e => handleOfferChange(e.target.value)}>
                 <option value="New Admission">Add New Admission</option>
                 <option value="Re-admission">Re-admission</option>
                 <option value="Monthly Fees Payment">Monthly Fees Payment</option>
@@ -82,6 +133,19 @@ export const Billing: React.FC = () => {
                 <option value="Yearly Offer">Yearly Offer</option>
                 <option value="Manual Entry">Full Manual Entry</option>
               </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="input-group">
+                <label>Period Start Date</label>
+                <input type="date" className="input-field" required 
+                  value={startDate} onChange={e => handleStartDateChange(e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>Period End Date</label>
+                <input type="date" className="input-field" required 
+                  value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
             </div>
 
             <div className="input-group">
@@ -115,6 +179,9 @@ export const Billing: React.FC = () => {
                 </div>
                 <div className="flex justify-between border-b border-gray-700 pb-2 mb-2">
                   <span>Particulars:</span> <span>{offer}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-700 pb-2 mb-2">
+                  <span>Period:</span> <span className="text-xs">{startDate} to {endDate}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg mt-4">
                   <span>Total:</span> <span className="text-success">₹{amount || '0'}</span>

@@ -190,7 +190,7 @@ export const Members: React.FC = () => {
                         className="btn btn-success flex items-center gap-1" 
                         style={{ padding: '0.4rem 0.8rem', backgroundColor: '#eab308', color: 'white', border: 'none' }} 
                         onClick={() => {
-                          const msg = `Happy Birthday ${member.name}! Wishing you a great day from JK Multi Gym! 🎂🎉`;
+                          const msg = `Happy Birthday ${member.name}! Wishing you a great day from JK Multi Gym!`;
                           window.open(`https://wa.me/91${member.whatsapp || member.phone}?text=${encodeURIComponent(msg)}`, '_blank');
                         }}
                       >

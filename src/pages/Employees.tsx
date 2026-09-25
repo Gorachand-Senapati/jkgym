@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useGym } from '../context/GymContext';
 import type { Employee } from '../context/GymContext';
-import { Plus, Edit2, Search } from 'lucide-react';
+import { Plus, Edit2, Search, Trash2 } from 'lucide-react';
 
 export const Employees: React.FC = () => {
-  const { employees, addEmployee, updateEmployee } = useGym();
+  const { employees, addEmployee, updateEmployee, deleteEmployee } = useGym();
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<{id: string, name: string} | null>(null);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
@@ -35,6 +36,17 @@ export const Employees: React.FC = () => {
     setEditingEmployee(null);
     setFormData({ ...defaultForm, id: `E${Date.now()}` });
     setShowModal(true);
+  };
+
+  const handleDeleteClick = (id: string, name: string) => {
+    setEmployeeToDelete({ id, name });
+  };
+
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      deleteEmployee(employeeToDelete.id);
+      setEmployeeToDelete(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -90,9 +102,14 @@ export const Employees: React.FC = () => {
                 <td>{emp.phone}</td>
                 <td>₹{emp.salary.toLocaleString()}</td>
                 <td>
-                  <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }} onClick={() => handleEditClick(emp)}>
-                    <Edit2 size={16} /> Edit
-                  </button>
+                  <div className="flex gap-2">
+                    <button className="btn btn-secondary flex items-center gap-1" style={{ padding: '0.4rem 0.8rem' }} onClick={() => handleEditClick(emp)}>
+                      <Edit2 size={16} /> Edit
+                    </button>
+                    <button className="btn btn-danger flex items-center gap-1" style={{ padding: '0.4rem 0.8rem', backgroundColor: '#ef4444', color: 'white', border: 'none' }} onClick={() => handleDeleteClick(emp.id, emp.name)}>
+                      <Trash2 size={16} /> Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -148,6 +165,26 @@ export const Employees: React.FC = () => {
                 <button type="submit" className="btn btn-primary">Save</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {employeeToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <div className="flex justify-center mb-4">
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={30} style={{ color: '#ef4444' }} />
+              </div>
+            </div>
+            <h2 className="mb-2 m-0 text-xl font-bold">Delete Employee?</h2>
+            <p className="text-muted mb-6">
+              Are you sure you want to permanently delete <strong>{employeeToDelete.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button className="btn btn-secondary flex-1" onClick={() => setEmployeeToDelete(null)}>Cancel</button>
+              <button className="btn btn-danger flex-1" style={{ backgroundColor: '#ef4444', color: 'white', border: 'none' }} onClick={confirmDelete}>Yes, Delete</button>
+            </div>
           </div>
         </div>
       )}

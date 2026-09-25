@@ -62,7 +62,9 @@ export interface Transaction {
   type: 'income' | 'expense' | 'bank_deposit';
   category: 'monthly_fee' | 'admission' | 'supplement_sale' | 'therapy' | 'gym_expense' | 'deposit';
   amount: number;
-  paymentMethod: 'cash' | 'online';
+  paymentMethod: 'cash' | 'online' | 'split';
+  cashAmount?: number;
+  onlineAmount?: number;
   description: string;
   userId?: string;
 }
@@ -86,8 +88,8 @@ interface GymContextType extends GymState {
   deleteEmployee: (id: string) => void;
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
-  sellProduct: (productId: string, qty: number, paymentMethod: 'cash' | 'online', userId?: string) => void;
-  addTherapySession: (session: TherapySession, paymentMethod: 'cash' | 'online', userId?: string) => void;
+  sellProduct: (productId: string, qty: number, paymentMethod: 'cash' | 'online' | 'split', userId?: string, cashAmount?: number, onlineAmount?: number) => void;
+  addTherapySession: (session: TherapySession, paymentMethod: 'cash' | 'online' | 'split', userId?: string, cashAmount?: number, onlineAmount?: number) => void;
   addTransaction: (transaction: Transaction) => void;
   updateBalances: () => void;
 }
@@ -123,24 +125,43 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [state]);
 
   const updateBalances = () => {
-    const cash = state.transactions.filter(t => t.paymentMethod === 'cash').reduce((acc, t) => {
-      if (t.type === 'income') return acc + t.amount;
-      if (t.type === 'expense' || t.type === 'bank_deposit') return acc - t.amount;
+    const cash = state.transactions.reduce((acc, t) => {
+      let tCashAmount = 0;
+      if (t.paymentMethod === 'cash') tCashAmount = t.amount;
+      else if (t.paymentMethod === 'split' && t.cashAmount) tCashAmount = t.cashAmount;
+      
+      if (tCashAmount > 0) {
+        if (t.type === 'income') return acc + tCashAmount;
+        if (t.type === 'expense' || t.type === 'bank_deposit') return acc - tCashAmount;
+      }
       return acc;
     }, 0);
 
-    const bank = state.transactions.filter(t => t.paymentMethod === 'online' || t.type === 'bank_deposit').reduce((acc, t) => {
-      if (t.type === 'income' || t.type === 'bank_deposit') return acc + t.amount;
-      if (t.type === 'expense') return acc - t.amount;
+    const bank = state.transactions.reduce((acc, t) => {
+      let tBankAmount = 0;
+      if (t.paymentMethod === 'online') tBankAmount = t.amount;
+      else if (t.paymentMethod === 'split' && t.onlineAmount) tBankAmount = t.onlineAmount;
+      else if (t.type === 'bank_deposit') tBankAmount = t.amount;
+
+      if (tBankAmount > 0) {
+        if (t.type === 'income' || t.type === 'bank_deposit') return acc + tBankAmount;
+        if (t.type === 'expense') return acc - tBankAmount;
+      }
       return acc;
     }, 0);
 
     const employeeCash: Record<string, number> = {};
     state.transactions.forEach(t => {
-      if (t.userId && t.paymentMethod === 'cash') {
-        if (!employeeCash[t.userId]) employeeCash[t.userId] = 0;
-        if (t.type === 'income') employeeCash[t.userId] += t.amount;
-        if (t.type === 'expense' || t.type === 'bank_deposit') employeeCash[t.userId] -= t.amount;
+      if (t.userId) {
+        let tCashAmount = 0;
+        if (t.paymentMethod === 'cash') tCashAmount = t.amount;
+        else if (t.paymentMethod === 'split' && t.cashAmount) tCashAmount = t.cashAmount;
+
+        if (tCashAmount > 0) {
+          if (!employeeCash[t.userId]) employeeCash[t.userId] = 0;
+          if (t.type === 'income') employeeCash[t.userId] += tCashAmount;
+          if (t.type === 'expense' || t.type === 'bank_deposit') employeeCash[t.userId] -= tCashAmount;
+        }
       }
     });
 
@@ -149,24 +170,43 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     // Recalculate balances whenever transactions change
-    const cash = state.transactions.filter(t => t.paymentMethod === 'cash').reduce((acc, t) => {
-      if (t.type === 'income') return acc + t.amount;
-      if (t.type === 'expense' || t.type === 'bank_deposit') return acc - t.amount;
+    const cash = state.transactions.reduce((acc, t) => {
+      let tCashAmount = 0;
+      if (t.paymentMethod === 'cash') tCashAmount = t.amount;
+      else if (t.paymentMethod === 'split' && t.cashAmount) tCashAmount = t.cashAmount;
+      
+      if (tCashAmount > 0) {
+        if (t.type === 'income') return acc + tCashAmount;
+        if (t.type === 'expense' || t.type === 'bank_deposit') return acc - tCashAmount;
+      }
       return acc;
     }, 0);
 
-    const bank = state.transactions.filter(t => t.paymentMethod === 'online' || t.type === 'bank_deposit').reduce((acc, t) => {
-      if (t.type === 'income' || t.type === 'bank_deposit') return acc + t.amount;
-      if (t.type === 'expense') return acc - t.amount;
+    const bank = state.transactions.reduce((acc, t) => {
+      let tBankAmount = 0;
+      if (t.paymentMethod === 'online') tBankAmount = t.amount;
+      else if (t.paymentMethod === 'split' && t.onlineAmount) tBankAmount = t.onlineAmount;
+      else if (t.type === 'bank_deposit') tBankAmount = t.amount;
+      
+      if (tBankAmount > 0) {
+        if (t.type === 'income' || t.type === 'bank_deposit') return acc + tBankAmount;
+        if (t.type === 'expense') return acc - tBankAmount;
+      }
       return acc;
     }, 0);
     
     const employeeCash: Record<string, number> = {};
     state.transactions.forEach(t => {
-      if (t.userId && t.paymentMethod === 'cash') {
-        if (!employeeCash[t.userId]) employeeCash[t.userId] = 0;
-        if (t.type === 'income') employeeCash[t.userId] += t.amount;
-        if (t.type === 'expense' || t.type === 'bank_deposit') employeeCash[t.userId] -= t.amount;
+      if (t.userId) {
+        let tCashAmount = 0;
+        if (t.paymentMethod === 'cash') tCashAmount = t.amount;
+        else if (t.paymentMethod === 'split' && t.cashAmount) tCashAmount = t.cashAmount;
+
+        if (tCashAmount > 0) {
+          if (!employeeCash[t.userId]) employeeCash[t.userId] = 0;
+          if (t.type === 'income') employeeCash[t.userId] += tCashAmount;
+          if (t.type === 'expense' || t.type === 'bank_deposit') employeeCash[t.userId] -= tCashAmount;
+        }
       }
     });
     
@@ -198,7 +238,7 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addProduct = (product: Product) => setState(p => ({ ...p, inventory: [...p.inventory, product] }));
   const updateProduct = (product: Product) => setState(p => ({ ...p, inventory: p.inventory.map(pr => pr.id === product.id ? product : pr) }));
   
-  const sellProduct = (productId: string, qty: number, paymentMethod: 'cash' | 'online', userId?: string) => {
+  const sellProduct = (productId: string, qty: number, paymentMethod: 'cash' | 'online' | 'split', userId?: string, cashAmount?: number, onlineAmount?: number) => {
     setState(p => {
       const product = p.inventory.find(pr => pr.id === productId);
       if (!product || product.stockQty < qty) return p;
@@ -211,6 +251,8 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         category: 'supplement_sale',
         amount: product.sellingPrice * qty,
         paymentMethod,
+        cashAmount,
+        onlineAmount,
         description: `Sold ${qty}x ${product.name}`,
         userId
       };
@@ -219,7 +261,7 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
-  const addTherapySession = (session: TherapySession, paymentMethod: 'cash' | 'online', userId?: string) => {
+  const addTherapySession = (session: TherapySession, paymentMethod: 'cash' | 'online' | 'split', userId?: string, cashAmount?: number, onlineAmount?: number) => {
     setState(p => {
       const newTx: Transaction = {
         id: `T${Date.now()}`,
@@ -228,6 +270,8 @@ export const GymProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         category: 'therapy',
         amount: session.amount,
         paymentMethod,
+        cashAmount,
+        onlineAmount,
         description: `Therapy: ${session.therapyName} for ${session.clientName}`,
         userId
       };

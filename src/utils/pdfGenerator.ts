@@ -46,7 +46,7 @@ const addHeader = async (doc: jsPDF) => {
   return 58; // Returns the Y position after header
 };
 
-export const generateBillingPDF = async (member: Member, amount: number, offer: string, date: string, paymentMethod: string) => {
+export const generateBillingPDF = async (member: Member, amount: number, offer: string, date: string, paymentMethod: string, cashAmount?: number, onlineAmount?: number) => {
   const doc = new jsPDF();
   const startY = await addHeader(doc);
 
@@ -54,13 +54,18 @@ export const generateBillingPDF = async (member: Member, amount: number, offer: 
   doc.setTextColor(0, 0, 0);
   doc.text('Payment Receipt', 105, startY, { align: 'center' });
 
+  let methodDisplay = paymentMethod ? paymentMethod.toUpperCase() : 'CASH';
+  if (paymentMethod === 'split') {
+    methodDisplay = `SPLIT (Cash: Rs.${cashAmount}, Online: Rs.${onlineAmount})`;
+  }
+
   const receiptInfo = [
     ['Receipt Date:', date || ''],
     ['Member ID:', member?.id || ''],
     ['Member Name:', member?.name || ''],
     ['Contact:', member?.phone || ''],
     ['Particulars (Offer):', offer || ''],
-    ['Payment Method:', paymentMethod ? paymentMethod.toUpperCase() : 'CASH']
+    ['Payment Method:', methodDisplay]
   ];
 
   autoTable(doc, {

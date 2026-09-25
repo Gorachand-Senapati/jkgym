@@ -12,12 +12,28 @@ export const Therapy: React.FC = () => {
   const [formData, setFormData] = useState<TherapySession>({
     id: '', date: new Date().toISOString().split('T')[0], clientName: '', whatsapp: '', therapyName: '', amount: 0
   });
-  const [paymentMethod, setPaymentMethod] = useState<'cash'|'online'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash'|'online'|'split'>('cash');
+  const [cashAmount, setCashAmount] = useState<string>('');
+  const [onlineAmount, setOnlineAmount] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let finalCashAmount: number | undefined = undefined;
+    let finalOnlineAmount: number | undefined = undefined;
+
+    if (paymentMethod === 'split') {
+      finalCashAmount = Number(cashAmount);
+      finalOnlineAmount = Number(onlineAmount);
+      
+      if (finalCashAmount + finalOnlineAmount !== formData.amount) {
+        alert('Cash and Online amounts must equal the Total Amount');
+        return;
+      }
+    }
+
     const newSession = { ...formData, id: `TS${Date.now()}` };
-    addTherapySession(newSession, paymentMethod, currentUser?.id);
+    addTherapySession(newSession, paymentMethod, currentUser?.id, finalCashAmount, finalOnlineAmount);
     
     // Generate PDF First
     await generateTherapyPDF(newSession);
@@ -110,15 +126,58 @@ export const Therapy: React.FC = () => {
                 <div className="input-group m-0">
                   <label>Amount (₹) *</label>
                   <input type="number" className="input-field" required 
-                    value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
+                    value={formData.amount} onChange={e => {
+                      setFormData({...formData, amount: Number(e.target.value)});
+                      if (paymentMethod === 'split') {
+                        setCashAmount(e.target.value);
+                        setOnlineAmount('0');
+                      }
+                    }} />
                 </div>
                 <div className="input-group m-0">
                   <label>Payment Method</label>
-                  <select className="input-field" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)}>
+                  <select className="input-field" value={paymentMethod} onChange={e => {
+                    const method = e.target.value as any;
+                    setPaymentMethod(method);
+                    if (method === 'split') {
+                      setCashAmount(formData.amount.toString());
+                      setOnlineAmount('0');
+                    }
+                  }}>
                     <option value="cash">Cash</option>
                     <option value="online">Online</option>
+                    <option value="split">Cash + Online (Split)</option>
                   </select>
                 </div>
+
+                {paymentMethod === 'split' && (
+                  <>
+                    <div className="input-group m-0">
+                      <label>Cash Amount (₹)</label>
+                      <input type="number" className="input-field" required 
+                        value={cashAmount} 
+                        onChange={e => {
+                          setCashAmount(e.target.value);
+                          const total = formData.amount || 0;
+                          const cash = Number(e.target.value) || 0;
+                          setOnlineAmount(Math.max(0, total - cash).toString());
+                        }} 
+                      />
+                    </div>
+                    <div className="input-group m-0">
+                      <label>Online Amount (₹)</label>
+                      <input type="number" className="input-field" required 
+                        value={onlineAmount} 
+                        onChange={e => {
+                          setOnlineAmount(e.target.value);
+                          const total = formData.amount || 0;
+                          const online = Number(e.target.value) || 0;
+                          setCashAmount(Math.max(0, total - online).toString());
+                        }} 
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="input-group m-0">
                   <label>Date *</label>
                   <input type="date" className="input-field" required 

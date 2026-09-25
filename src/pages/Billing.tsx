@@ -22,8 +22,10 @@ export const Billing: React.FC = () => {
     return d.toISOString().split('T')[0];
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<'cash'|'online'>('cash');
-  const [lastPayment, setLastPayment] = useState<{ member: any, amount: number, offer: string, date: string, paymentMethod: string } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'cash'|'online'|'split'>('cash');
+  const [cashAmount, setCashAmount] = useState<string>('');
+  const [onlineAmount, setOnlineAmount] = useState<string>('');
+  const [lastPayment, setLastPayment] = useState<{ member: any, amount: number, offer: string, date: string, paymentMethod: string, cashAmount?: number, onlineAmount?: number } | null>(null);
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,13 +36,29 @@ export const Billing: React.FC = () => {
       return;
     }
 
+    const totalAmount = Number(amount);
+    let finalCashAmount: number | undefined = undefined;
+    let finalOnlineAmount: number | undefined = undefined;
+    
+    if (paymentMethod === 'split') {
+      finalCashAmount = Number(cashAmount);
+      finalOnlineAmount = Number(onlineAmount);
+      
+      if (finalCashAmount + finalOnlineAmount !== totalAmount) {
+        showAlert('Cash and Online amounts must equal the Total Amount', 'error');
+        return;
+      }
+    }
+
     const tx: Transaction = {
       id: `TX${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       type: 'income',
       category: 'monthly_fee',
-      amount: Number(amount),
+      amount: totalAmount,
       paymentMethod,
+      cashAmount: finalCashAmount,
+      onlineAmount: finalOnlineAmount,
       description: `${offer} for ${member.name}`,
       userId: currentUser?.id
     };
@@ -54,14 +72,18 @@ export const Billing: React.FC = () => {
     // Save last payment details for the success modal
     setLastPayment({
       member,
-      amount: Number(amount),
+      amount: totalAmount,
       offer,
       date: tx.date,
-      paymentMethod
+      paymentMethod,
+      cashAmount: finalCashAmount,
+      onlineAmount: finalOnlineAmount
     });
 
     setMemberId('');
     setAmount('');
+    setCashAmount('');
+    setOnlineAmount('');
     
     // Reset dates to default
     const d = new Date();
@@ -151,16 +173,59 @@ export const Billing: React.FC = () => {
             <div className="input-group">
               <label>Amount (₹)</label>
               <input type="number" className="input-field" required 
-                value={amount} onChange={e => setAmount(e.target.value)} />
+                value={amount} onChange={e => {
+                  setAmount(e.target.value);
+                  if (paymentMethod === 'split') {
+                    setCashAmount(e.target.value);
+                    setOnlineAmount('0');
+                  }
+                }} />
             </div>
 
             <div className="input-group">
               <label>Payment Method</label>
-              <select className="input-field" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)}>
+              <select className="input-field" value={paymentMethod} onChange={e => {
+                const method = e.target.value as any;
+                setPaymentMethod(method);
+                if (method === 'split' && amount) {
+                  setCashAmount(amount);
+                  setOnlineAmount('0');
+                }
+              }}>
                 <option value="cash">Cash (Updates Cash Balance)</option>
                 <option value="online">Online (Updates Bank Balance)</option>
+                <option value="split">Cash + Online (Split)</option>
               </select>
             </div>
+            
+            {paymentMethod === 'split' && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="input-group">
+                  <label>Cash Amount (₹)</label>
+                  <input type="number" className="input-field" required 
+                    value={cashAmount} 
+                    onChange={e => {
+                      setCashAmount(e.target.value);
+                      const total = Number(amount) || 0;
+                      const cash = Number(e.target.value) || 0;
+                      setOnlineAmount(Math.max(0, total - cash).toString());
+                    }} 
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Online Amount (₹)</label>
+                  <input type="number" className="input-field" required 
+                    value={onlineAmount} 
+                    onChange={e => {
+                      setOnlineAmount(e.target.value);
+                      const total = Number(amount) || 0;
+                      const online = Number(e.target.value) || 0;
+                      setCashAmount(Math.max(0, total - online).toString());
+                    }} 
+                  />
+                </div>
+              </div>
+            )}
 
             <button type="submit" className="btn btn-primary w-full mt-4">
               <IndianRupee size={18} /> Record Payment
@@ -207,7 +272,7 @@ export const Billing: React.FC = () => {
               <button 
                 className="btn btn-secondary w-full flex justify-center items-center gap-2" 
                 onClick={async () => {
-                  await generateBillingPDF(lastPayment.member, lastPayment.amount, lastPayment.offer, lastPayment.date, lastPayment.paymentMethod);
+                  await generateBillingPDF(lastPayment.member, lastPayment.amount, lastPayment.offer, lastPayment.date, lastPayment.paymentMethod, lastPayment.cashAmount, lastPayment.onlineAmount);
                 }}
               >
                 <Download size={18} /> Download Receipt PDF

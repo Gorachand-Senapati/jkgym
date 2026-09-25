@@ -17,7 +17,7 @@ export const Inventory: React.FC = () => {
     id: '', name: '', stockQty: '', purchasePrice: '', sellingPrice: ''
   });
 
-  const [sellData, setSellData] = useState<{ productId: string, qty: number, method: 'cash'|'online' }>({ productId: '', qty: 1, method: 'cash' });
+  const [sellData, setSellData] = useState<{ productId: string, qty: number, method: 'cash'|'online'|'split', cashAmount: string, onlineAmount: string }>({ productId: '', qty: 1, method: 'cash', cashAmount: '', onlineAmount: '' });
 
   const handleEditClick = (product: Product) => {
     setEditingProduct(product);
@@ -37,9 +37,27 @@ export const Inventory: React.FC = () => {
 
   const handleSell = (e: React.FormEvent) => {
     e.preventDefault();
-    sellProduct(sellData.productId, sellData.qty, sellData.method, currentUser?.id);
+    const product = inventory.find(p => p.id === sellData.productId);
+    if (!product) return;
+    
+    const totalAmount = product.sellingPrice * sellData.qty;
+    let finalCashAmount: number | undefined = undefined;
+    let finalOnlineAmount: number | undefined = undefined;
+
+    if (sellData.method === 'split') {
+      finalCashAmount = Number(sellData.cashAmount);
+      finalOnlineAmount = Number(sellData.onlineAmount);
+      
+      if (finalCashAmount + finalOnlineAmount !== totalAmount) {
+        showAlert('Cash and Online amounts must equal the Total Amount', 'error');
+        return;
+      }
+    }
+
+    sellProduct(sellData.productId, sellData.qty, sellData.method, currentUser?.id, finalCashAmount, finalOnlineAmount);
     showAlert('Product sold successfully! Stock decreased automatically.', 'success');
     setShowSellModal(false);
+    setSellData({ productId: '', qty: 1, method: 'cash', cashAmount: '', onlineAmount: '' });
   };
 
   return (
@@ -165,12 +183,59 @@ export const Inventory: React.FC = () => {
               </div>
               <div className="input-group">
                 <label>Payment Method</label>
-                <select className="input-field" value={sellData.method} onChange={e => setSellData({...sellData, method: e.target.value as any})}>
+                <select className="input-field" value={sellData.method} onChange={e => {
+                  const method = e.target.value as any;
+                  const product = inventory.find(p => p.id === sellData.productId);
+                  const totalAmount = product ? product.sellingPrice * sellData.qty : 0;
+                  setSellData({
+                    ...sellData, 
+                    method, 
+                    cashAmount: method === 'split' ? totalAmount.toString() : '',
+                    onlineAmount: method === 'split' ? '0' : ''
+                  });
+                }}>
                   <option value="cash">Cash</option>
                   <option value="online">Online</option>
+                  <option value="split">Cash + Online (Split)</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-success w-full mt-4">Confirm Sale</button>
+
+              {sellData.method === 'split' && (
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="input-group">
+                    <label>Cash Amount (₹)</label>
+                    <input type="number" className="input-field" required 
+                      value={sellData.cashAmount} 
+                      onChange={e => {
+                        const product = inventory.find(p => p.id === sellData.productId);
+                        const total = product ? product.sellingPrice * sellData.qty : 0;
+                        const cash = Number(e.target.value) || 0;
+                        setSellData({...sellData, cashAmount: e.target.value, onlineAmount: Math.max(0, total - cash).toString()});
+                      }} 
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Online Amount (₹)</label>
+                    <input type="number" className="input-field" required 
+                      value={sellData.onlineAmount} 
+                      onChange={e => {
+                        const product = inventory.find(p => p.id === sellData.productId);
+                        const total = product ? product.sellingPrice * sellData.qty : 0;
+                        const online = Number(e.target.value) || 0;
+                        setSellData({...sellData, onlineAmount: e.target.value, cashAmount: Math.max(0, total - online).toString()});
+                      }} 
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {inventory.find(p=>p.id===sellData.productId) && (
+                <div className="mt-4 mb-2 font-bold text-success text-center border-t border-gray-700 pt-3">
+                  Total Bill: ₹{inventory.find(p=>p.id===sellData.productId)!.sellingPrice * sellData.qty}
+                </div>
+              )}
+
+              <button type="submit" className="btn btn-success w-full mt-2">Confirm Sale</button>
             </form>
           </div>
         </div>
